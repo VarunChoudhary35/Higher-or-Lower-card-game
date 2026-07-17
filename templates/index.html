@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Higher or Lower - Web</title>
+    <style>
+      body { font-family: Arial, sans-serif; max-width: 640px; margin: 2rem auto; }
+      .card { font-weight: bold; margin: 1rem 0; }
+      .result { margin-top: 1rem; font-size: 1.2rem; }
+      button { margin-right: .5rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Higher or Lower</h1>
+    <p>Click <strong>Start Round</strong> to draw the first card.</p>
+    <div>
+      <button id="start">Start Round</button>
+    </div>
+
+    <div id="round" style="display:none;">
+      <div class="card">Current card: <span id="first"></span></div>
+      <div>
+        <button id="higher">Higher</button>
+        <button id="lower">Lower</button>
+      </div>
+      <div class="result" id="outcome"></div>
+      <div style="margin-top:1rem;">Score: <span id="score">0</span></div>
+      <div style="margin-top:1rem;"><button id="playAgain">Play Again</button></div>
+    </div>
+
+    <script>
+      let token = null
+      let score = 0
+
+      document.getElementById('start').addEventListener('click', async () => {
+        const res = await fetch('/first')
+        const data = await res.json()
+        token = data.token
+        document.getElementById('first').textContent = `${data.first.value} of ${data.first.suit}`
+        document.getElementById('round').style.display = 'block'
+        document.getElementById('outcome').textContent = ''
+      })
+
+      async function sendGuess(g) {
+        if (!token) return
+        const res = await fetch('/guess', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token, guess: g })
+        })
+        const data = await res.json()
+        if (data.error) {
+          document.getElementById('outcome').textContent = 'Error: ' + data.error
+          return
+        }
+        document.getElementById('outcome').textContent = `Next card: ${data.second.value} of ${data.second.suit} — ` + (
+          data.result === 'draw' ? "It's a draw" : (data.result ? 'You win!' : 'You lose!')
+        )
+        if (data.result === 'draw') {
+          // no score change
+        } else if (data.result) {
+          score += 1
+        }
+        document.getElementById('score').textContent = score
+        token = null
+      }
+
+      document.getElementById('higher').addEventListener('click', () => sendGuess('higher'))
+      document.getElementById('lower').addEventListener('click', () => sendGuess('lower'))
+      document.getElementById('playAgain').addEventListener('click', () => {
+        document.getElementById('round').style.display = 'none'
+        document.getElementById('outcome').textContent = ''
+      })
+    </script>
+  </body>
+</html>
