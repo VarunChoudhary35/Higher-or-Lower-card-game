@@ -1,10 +1,15 @@
 from flask import Flask, jsonify, request, render_template
+import logging
 import uuid
 from threading import Lock
 
 from card_game import draw_cards, evaluate_guess, get_value
 
 app = Flask(__name__)
+
+# basic logging so Railway runtime logs show startup
+logging.basicConfig(level=logging.INFO)
+app.logger.info("app module imported")
 
 # In-memory store for active rounds: token -> (first_card, second_card)
 store = {}
@@ -13,6 +18,12 @@ store_lock = Lock()
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/health', methods=['GET'])
+def health():
+    # simple health check for platform probes
+    return jsonify({'status': 'ok'})
 
 @app.route('/first', methods=['GET'])
 def first_card():
