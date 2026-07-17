@@ -1,5 +1,7 @@
 import json
+import os
 import random
+import sys
 import urllib.request
 from urllib.error import URLError, HTTPError
 
@@ -73,6 +75,11 @@ def play_round():
 
 
 def main():
+    if os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("PORT"):
+        print("Railway startup detected. This console app is not a long-running web service.")
+        print("The app will exit after a short startup check.")
+        return
+
     print("=" * 40)
     print("Welcome to Higher or Lower!")
     print("=" * 40)
