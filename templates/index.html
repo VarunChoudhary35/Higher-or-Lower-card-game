@@ -1,77 +1,263 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Higher or Lower - Web</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Higher or Lower!</title>
     <style>
-      body { font-family: Arial, sans-serif; max-width: 640px; margin: 2rem auto; }
-      .card { font-weight: bold; margin: 1rem 0; }
-      .result { margin-top: 1rem; font-size: 1.2rem; }
-      button { margin-right: .5rem; }
-    </style>
-  </head>
-  <body>
-    <h1>Higher or Lower</h1>
-    <p>Click <strong>Start Round</strong> to draw the first card.</p>
-    <div>
-      <button id="start">Start Round</button>
-    </div>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
 
-    <div id="round" style="display:none;">
-      <div class="card">Current card: <span id="first"></span></div>
-      <div>
-        <button id="higher">Higher</button>
-        <button id="lower">Lower</button>
-      </div>
-      <div class="result" id="outcome"></div>
-      <div style="margin-top:1rem;">Score: <span id="score">0</span></div>
-      <div style="margin-top:1rem;"><button id="playAgain">Play Again</button></div>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #a8e6cf;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+            color: #333;
+        }
+
+        .game-container {
+            background: white;
+            padding: 40px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        h1 {
+            font-family: 'Fredoka One', cursive;
+            color: #ff8b94;
+            font-size: 2.5rem;
+            margin-top: 0;
+        }
+
+        .card {
+            background: #fff;
+            border: 4px solid #333;
+            border-radius: 15px;
+            height: 200px;
+            width: 140px;
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4rem;
+            box-shadow: 5px 5px 0px #333;
+            transition: transform 0.2s ease;
+            line-height: 1.1;
+        }
+
+        .card.red { color: #ff5252; }
+        .card.black { color: #333; }
+
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+
+        button {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1.2rem;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            color: white;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        button:disabled {
+            background-color: #ccc !important;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-higher { background-color: #ffd3b6; color: #d35400; }
+        .btn-higher:hover:not(:disabled) { background-color: #ffc299; }
+
+        .btn-lower { background-color: #dcedc1; color: #27ae60; }
+        .btn-lower:hover:not(:disabled) { background-color: #c9e3a6; }
+        
+        .btn-restart { background-color: #ffaaa5; margin-top: 20px; width: 100%;}
+
+        .score-board {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #555;
+        }
+
+        #message {
+            font-weight: bold;
+            min-height: 48px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>Higher or Lower? 🃏</h1>
+        
+        <div class="score-board">
+            Score: <span id="score">0</span>
+        </div>
+
+        <div id="message">Let's play!</div>
+
+        <!-- The Playing Card -->
+        <div id="card-display" class="card black">
+            ?
+        </div>
+
+        <!-- Game Controls -->
+        <div class="controls">
+            <button id="btn-lower" class="btn-lower" onclick="makeGuess('lower')">👇 Lower</button>
+            <button id="btn-higher" class="btn-higher" onclick="makeGuess('higher')">Higher 👆</button>
+        </div>
+
+        <button class="btn-restart" onclick="startGame(true)">🔄 Restart Game</button>
     </div>
 
     <script>
-      let token = null
-      let score = 0
+        const API_FIRST = '/first';
+        const API_GUESS = '/guess';
+        
+        let currentToken = '';
+        let currentScore = 0;
 
-      document.getElementById('start').addEventListener('click', async () => {
-        const res = await fetch('/first')
-        const data = await res.json()
-        token = data.token
-        document.getElementById('first').textContent = `${data.first.value} of ${data.first.suit}`
-        document.getElementById('round').style.display = 'block'
-        document.getElementById('outcome').textContent = ''
-      })
+        // Start a new round by drawing the first card
+        async function startGame(resetScore = false) {
+            if (resetScore) {
+                currentScore = 0;
+                updateScoreUI();
+            }
+            
+            toggleButtons(false);
 
-      async function sendGuess(g) {
-        if (!token) return
-        const res = await fetch('/guess', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: token, guess: g })
-        })
-        const data = await res.json()
-        if (data.error) {
-          document.getElementById('outcome').textContent = 'Error: ' + data.error
-          return
+            try {
+                // Call /first as a GET request according to the API spec
+                const response = await fetch(API_FIRST);
+                const data = await response.json();
+                
+                // Store the unique token for the upcoming guess
+                currentToken = data.token;
+                
+                document.getElementById('message').innerText = "Will the next card be Higher or Lower?";
+                document.getElementById('message').style.color = "#333";
+                
+                // Update UI with the 'first' card object
+                updateCardUI(data.first);
+            } catch (error) {
+                console.error("Error starting game:", error);
+                document.getElementById('message').innerText = "Oops! Couldn't connect to the server.";
+            }
         }
-        document.getElementById('outcome').textContent = `Next card: ${data.second.value} of ${data.second.suit} — ` + (
-          data.result === 'draw' ? "It's a draw" : (data.result ? 'You win!' : 'You lose!')
-        )
-        if (data.result === 'draw') {
-          // no score change
-        } else if (data.result) {
-          score += 1
-        }
-        document.getElementById('score').textContent = score
-        token = null
-      }
 
-      document.getElementById('higher').addEventListener('click', () => sendGuess('higher'))
-      document.getElementById('lower').addEventListener('click', () => sendGuess('lower'))
-      document.getElementById('playAgain').addEventListener('click', () => {
-        document.getElementById('round').style.display = 'none'
-        document.getElementById('outcome').textContent = ''
-      })
+        // Submit the guess to the backend
+        async function makeGuess(guess) {
+            toggleButtons(true); // Prevent double-clicking
+            
+            try {
+                // Send the token and the string guess ("higher" or "lower") via POST
+                const response = await fetch(API_GUESS, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        token: currentToken, 
+                        guess: guess 
+                    })
+                });
+                
+                const data = await response.json();
+
+                // Show the second card
+                updateCardUI(data.second);
+                
+                // Evaluate the result returned from the API
+                if (data.result === true) {
+                    currentScore++;
+                    updateScoreUI();
+                    document.getElementById('message').innerHTML = "🎉 Correct!<br>Loading next round...";
+                    document.getElementById('message').style.color = "#27ae60";
+                    
+                    // Automatically load the next round after a brief pause
+                    setTimeout(() => startGame(false), 2000);
+                    
+                } else if (data.result === "draw") {
+                    document.getElementById('message').innerHTML = "🤝 It's a draw!<br>Loading next round...";
+                    document.getElementById('message').style.color = "#f39c12";
+                    
+                    // Automatically load next round without penalty
+                    setTimeout(() => startGame(false), 2000);
+                    
+                } else {
+                    document.getElementById('message').innerText = "💥 Oh no! Wrong guess. Game Over.";
+                    document.getElementById('message').style.color = "#ff5252";
+                    // Leave buttons disabled until they click Restart
+                }
+            } catch (error) {
+                console.error("Error making guess:", error);
+                document.getElementById('message').innerText = "Error making guess!";
+                toggleButtons(false);
+            }
+        }
+
+        function updateCardUI(cardData) {
+            if (!cardData) return;
+            
+            const cardElement = document.getElementById('card-display');
+            
+            // Map the uppercase suits from the API to emojis
+            const suits = {
+                'HEARTS': '♥', 'DIAMONDS': '♦', 'CLUBS': '♣', 'SPADES': '♠'
+            };
+            
+            const displaySuit = suits[cardData.suit] || cardData.suit;
+            
+            // Format Jack, Queen, King, Ace for better display if needed, 
+            // though the API spec suggests they return as "JACK", "QUEEN", etc.
+            let displayValue = cardData.value;
+            if (displayValue === "JACK") displayValue = "J";
+            if (displayValue === "QUEEN") displayValue = "Q";
+            if (displayValue === "KING") displayValue = "K";
+            if (displayValue === "ACE") displayValue = "A";
+            
+            cardElement.innerHTML = `${displayValue}<br>${displaySuit}`;
+            
+            // Make Hearts and Diamonds red
+            if (cardData.suit === 'HEARTS' || cardData.suit === 'DIAMONDS') {
+                cardElement.className = 'card red';
+            } else {
+                cardElement.className = 'card black';
+            }
+        }
+
+        function updateScoreUI() {
+            document.getElementById('score').innerText = currentScore;
+        }
+
+        function toggleButtons(disabled) {
+            document.getElementById('btn-lower').disabled = disabled;
+            document.getElementById('btn-higher').disabled = disabled;
+        }
+
+        // Start the game when the page loads
+        window.onload = () => startGame(true);
     </script>
-  </body>
+</body>
 </html>
