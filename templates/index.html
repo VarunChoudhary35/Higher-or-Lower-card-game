@@ -141,7 +141,7 @@
         let currentScore = 0;
 
         // Start a new round by drawing the first card
-        async function startGame(resetScore = false) {
+        async function startGame(resetScore = false, roundData = null) {
             if (resetScore) {
                 currentScore = 0;
                 updateScoreUI();
@@ -150,18 +150,21 @@
             toggleButtons(false);
 
             try {
-                // Call /first as a GET request according to the API spec
-                const response = await fetch(API_FIRST);
-                const data = await response.json();
+                let data = roundData;
+                if (!data) {
+                    // Call /first as a GET request according to the API spec
+                    const response = await fetch(API_FIRST);
+                    data = await response.json();
+                }
                 
                 // Store the unique token for the upcoming guess
-                currentToken = data.token;
+                currentToken = data.token || data.next_token || '';
                 
                 document.getElementById('message').innerText = "Will the next card be Higher or Lower?";
                 document.getElementById('message').style.color = "#333";
                 
                 // Update UI with the 'first' card object
-                updateCardUI(data.first);
+                updateCardUI(data.first || data.next_first);
             } catch (error) {
                 console.error("Error starting game:", error);
                 document.getElementById('message').innerText = "Oops! Couldn't connect to the server.";
@@ -188,6 +191,11 @@
                 // Show the second card
                 updateCardUI(data.second);
                 
+                const nextRoundData = {
+                    token: data.next_token,
+                    first: data.next_first
+                };
+                
                 // Evaluate the result returned from the API
                 if (data.result === true) {
                     currentScore++;
@@ -196,14 +204,14 @@
                     document.getElementById('message').style.color = "#27ae60";
                     
                     // Automatically load the next round after a brief pause
-                    setTimeout(() => startGame(false), 2000);
+                    setTimeout(() => startGame(false, nextRoundData), 2000);
                     
                 } else if (data.result === "draw") {
                     document.getElementById('message').innerHTML = "🤝 It's a draw!<br>Loading next round...";
                     document.getElementById('message').style.color = "#f39c12";
                     
                     // Automatically load next round without penalty
-                    setTimeout(() => startGame(false), 2000);
+                    setTimeout(() => startGame(false, nextRoundData), 2000);
                     
                 } else {
                     document.getElementById('message').innerText = "💥 Oh no! Wrong guess. Game Over.";

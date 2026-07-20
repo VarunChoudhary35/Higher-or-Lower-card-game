@@ -1,6 +1,6 @@
 # Higher or Lower Card Game API Specification
 
-This document describes the public API for the Flask web version of the Higher or Lower card game.
+This document describes the API implemented by the Flask web app in this project.
 The service exposes endpoints for starting a round, submitting a guess, and checking health.
 
 ## Base URL
@@ -16,7 +16,7 @@ https://higher-or-lower-card-game-production.up.railway.app
 ### 1. `GET /`
 
 **Purpose:**
-- Returns the HTML game UI.
+- Returns the HTML game UI rendered from the Flask template.
 
 **Request:**
 - Method: `GET`
@@ -31,8 +31,8 @@ https://higher-or-lower-card-game-production.up.railway.app
 ### 2. `GET /first`
 
 **Purpose:**
-- Start a new round by drawing the first card.
-- Generates a unique token to associate the first card with the next guess.
+- Starts a new round by drawing two cards.
+- Generates a unique token that links the first card to the next guess.
 
 **Request:**
 - Method: `GET`
@@ -44,7 +44,7 @@ https://higher-or-lower-card-game-production.up.railway.app
 - Content-Type: `application/json`
 - Body:
   - `token` (string): unique round token.
-  - `first` (object): first card drawn.
+  - `first` (object): the first card drawn.
 
 **Example Response:**
 
@@ -61,7 +61,7 @@ https://higher-or-lower-card-game-production.up.railway.app
 ### 3. `POST /guess`
 
 **Purpose:**
-- Submit the player's guess for the next card in the current round.
+- Submits the player's guess for the next card in the current round.
 - Evaluates whether the second card is higher, lower, or equal to the first card.
 
 **Request:**
@@ -69,7 +69,7 @@ https://higher-or-lower-card-game-production.up.railway.app
 - Path: `/guess`
 - Content-Type: `application/json`
 - Body:
-  - `token` (string): the round token returned from `/first`
+  - `token` (string): the round token returned by `/first`
   - `guess` (string): either `higher` or `lower`
 
 **Example Request:**
@@ -87,10 +87,12 @@ https://higher-or-lower-card-game-production.up.railway.app
 - Body:
   - `first` (object): the first card drawn.
   - `second` (object): the second card drawn.
-  - `result` (string): one of:
-    - `true` — guess was correct
-    - `false` — guess was incorrect
-    - `draw` — both cards had equal value
+  - `result` (boolean or string):
+    - `true` if the guess was correct
+    - `false` if the guess was incorrect
+    - `"draw"` if both cards had equal value
+  - `next_token` (string): a fresh round token for the next turn.
+  - `next_first` (object): the first card for the next round.
 
 **Example Response:**
 
@@ -98,7 +100,9 @@ https://higher-or-lower-card-game-production.up.railway.app
 {
   "first": { "value": "7", "suit": "HEARTS" },
   "second": { "value": "JACK", "suit": "SPADES" },
-  "result": true
+  "result": true,
+  "next_token": "4b9e6b6f-2d54-4cc8-9d91-b8c1fb1f8d10",
+  "next_first": { "value": "10", "suit": "CLUBS" }
 }
 ```
 
@@ -113,6 +117,14 @@ https://higher-or-lower-card-game-production.up.railway.app
 ```json
 {
   "error": "missing token or invalid guess"
+}
+```
+
+**Example Expired or Invalid Token Response:**
+
+```json
+{
+  "error": "invalid or expired token"
 }
 ```
 
@@ -152,24 +164,27 @@ The API compares card values using this ranking:
 
 A guess of `higher` is correct if the second card value is greater than the first card value.
 A guess of `lower` is correct if the second card value is less than the first card value.
-If the values are equal, the response is `draw`.
+If the values are equal, the response is `"draw"`.
 
 ## Error Handling
 
-- Invalid or missing `token` in `/guess` returns `400 Bad Request`.
+- Missing or invalid `token` in `/guess` returns `400 Bad Request`.
 - Invalid `guess` value in `/guess` returns `400 Bad Request`.
-- If `/first` fails to draw enough cards from the API, the app falls back to a local card list.
+- An invalid or expired token also returns `400 Bad Request`.
+- If the external card API fails or returns an invalid payload, the app falls back to a built-in local card list.
 
 ## Notes for Deployment
 
 - The web app should run on the port specified by the hosting platform using the environment variable `PORT`.
-- The `Procfile` should expose the web process using `gunicorn app:app --bind 0.0.0.0:$PORT`.
+- The `Procfile` runs the app with `gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 30`.
 - The UI uses the `/first` and `/guess` endpoints to manage each round.
+- Tokens are stored in memory and are single-use.
 
 ## Usage Flow
 
 1. Browser loads `/`.
-2. Client calls `GET /first`.
+2. Client calls `GET /first` to start the first round.
 3. User chooses `higher` or `lower`.
-4. Client sends `POST /guess`.
-5. UI displays the `second` card and the result.
+4. Client sends `POST /guess` with the current token.
+5. The API returns the result, the second card, and a `next_token` plus `next_first` for the following round.
+6. The client can continue the game using the returned `next_token` and `next_first` without calling `/first` again.

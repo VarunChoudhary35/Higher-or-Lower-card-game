@@ -25,12 +25,17 @@ def health():
     # simple health check for platform probes
     return jsonify({'status': 'ok'})
 
-@app.route('/first', methods=['GET'])
-def first_card():
+def _create_round():
     first, second = draw_cards()
     token = str(uuid.uuid4())
     with store_lock:
         store[token] = (first, second)
+    return token, first, second
+
+
+@app.route('/first', methods=['GET'])
+def first_card():
+    token, first, _ = _create_round()
     return jsonify({
         'token': token,
         'first': first
@@ -51,11 +56,14 @@ def guess():
 
     first, second = pair
     result = evaluate_guess(first, second, guess)
+    next_token, next_first, _ = _create_round()
 
     return jsonify({
         'first': first,
         'second': second,
-        'result': result
+        'result': result,
+        'next_token': next_token,
+        'next_first': next_first
     })
 
 if __name__ == '__main__':
