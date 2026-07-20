@@ -11,7 +11,7 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 app.logger.info("app module imported")
 
-# In-memory store for active rounds: token -> (first_card, second_card)
+# In-memory store for active rounds: token -> (current_card, next_card)
 store = {}
 store_lock = Lock()
 
@@ -25,12 +25,14 @@ def health():
     # simple health check for platform probes
     return jsonify({'status': 'ok'})
 
-def _create_round():
+def _create_round(current_card=None):
     first, second = draw_cards()
     token = str(uuid.uuid4())
+    if current_card is None:
+        current_card = first
     with store_lock:
-        store[token] = (first, second)
-    return token, first, second
+        store[token] = (current_card, second)
+    return token, current_card, second
 
 
 @app.route('/first', methods=['GET'])
@@ -55,16 +57,17 @@ def guess():
     if not pair:
         return jsonify({'error': 'invalid or expired token'}), 400
 
-    first, second = pair
-    result = evaluate_guess(first, second, guess)
+    current_card, next_card = pair
+    result = evaluate_guess(current_card, next_card, guess)
 
-    next_token, next_first, _ = _create_round()
+    next_token, next_current_card, next_next_card = _create_round(current_card=next_card)
 
     return jsonify({
-        'first': first,
-        'second': second,
+        'first': current_card,
+        'second': next_card,
         'result': result,
-        'next_token': next_token
+        'next_token': next_token,
+        'next_card': next_card
     })
 
 if __name__ == '__main__':

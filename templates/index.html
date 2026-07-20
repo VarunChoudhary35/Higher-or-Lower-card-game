@@ -161,7 +161,7 @@
                 document.getElementById('message').innerText = "Will the next card be Higher or Lower?";
                 document.getElementById('message').style.color = "#333";
                 
-                updateCardUI(data.first || data.second);
+                updateCardUI(data.first || data.next_card || data.second);
             } catch (error) {
                 console.error("Error starting game:", error);
                 document.getElementById('message').innerText = "Oops! Couldn't connect to the server.";
@@ -189,7 +189,7 @@
                 
                 const nextRoundData = {
                     token: data.next_token,
-                    first: data.second
+                    first: data.next_card || data.second
                 };
                 
                 if (data.result === true) {

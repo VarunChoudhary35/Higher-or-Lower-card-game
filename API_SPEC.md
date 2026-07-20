@@ -31,8 +31,9 @@ https://higher-or-lower-card-game-production.up.railway.app
 ### 2. `GET /first`
 
 **Purpose:**
-- Starts a new round by drawing two cards.
-- Generates a unique token that links the first card to the next guess.
+- Starts the game by creating the first active card for the player.
+- Returns a token that must be used for the first guess.
+- This endpoint is only used to begin the game and does not itself evaluate a comparison.
 
 **Request:**
 - Method: `GET`
@@ -43,8 +44,8 @@ https://higher-or-lower-card-game-production.up.railway.app
 - Status: `200 OK`
 - Content-Type: `application/json`
 - Body:
-  - `token` (string): unique round token.
-  - `first` (object): the first card drawn.
+  - `token` (string): unique token for the first turn.
+  - `first` (object): the card currently shown to the player.
 
 **Example Response:**
 
@@ -61,15 +62,16 @@ https://higher-or-lower-card-game-production.up.railway.app
 ### 3. `POST /guess`
 
 **Purpose:**
-- Submits the player's guess for the next card in the current round.
-- Evaluates whether the second card is higher, lower, or equal to the first card.
+- Evaluates one turn of the game.
+- Compares the currently visible card with a newly revealed card.
+- Returns whether the player's guess was correct, along with the card that should become the next visible card.
 
 **Request:**
 - Method: `POST`
 - Path: `/guess`
 - Content-Type: `application/json`
 - Body:
-  - `token` (string): the round token returned by `/first`
+  - `token` (string): the token returned by `/first` or by the previous `/guess` response.
   - `guess` (string): either `higher` or `lower`
 
 **Example Request:**
@@ -85,13 +87,14 @@ https://higher-or-lower-card-game-production.up.railway.app
 - Status: `200 OK`
 - Content-Type: `application/json`
 - Body:
-  - `first` (object): the card shown before the guess for the current round.
-  - `second` (object): the revealed card for the current round.
+  - `first` (object): the card shown to the player before the guess for the current turn.
+  - `second` (object): the card revealed after the guess for the current turn.
   - `result` (boolean or string):
     - `true` if the guess was correct
     - `false` if the guess was incorrect
     - `"draw"` if both cards had equal value
-  - `next_token` (string): a fresh round token for the next turn.
+  - `next_token` (string): a fresh token for the next turn.
+  - `next_card` (object): the same card as `second`, which becomes the visible card for the next turn.
 
 **Example Response:**
 
@@ -100,7 +103,8 @@ https://higher-or-lower-card-game-production.up.railway.app
   "first": { "value": "7", "suit": "HEARTS" },
   "second": { "value": "JACK", "suit": "SPADES" },
   "result": true,
-  "next_token": "4b9e6b6f-2d54-4cc8-9d91-b8c1fb1f8d10"
+  "next_token": "4b9e6b6f-2d54-4cc8-9d91-b8c1fb1f8d10",
+  "next_card": { "value": "JACK", "suit": "SPADES" }
 }
 ```
 
@@ -171,6 +175,18 @@ If the values are equal, the response is `"draw"`.
 - An invalid or expired token also returns `400 Bad Request`.
 - If the external card API fails or returns an invalid payload, the app falls back to a built-in local card list.
 
+## Game Flow Semantics
+
+The API is intentionally stateful and supports an indefinite sequence of turns.
+
+- The first turn begins with `GET /first`, which returns an initial visible card and a token.
+- Each subsequent turn uses the `next_token` returned by the previous `/guess` response.
+- For each turn, the server compares the current visible card with one newly revealed card.
+- After the comparison, the revealed card becomes the new visible card for the next turn.
+- The client should display the returned `next_card` and send the returned `next_token` on the following guess.
+
+This means the game is not based on a fixed deck or a finite number of rounds. The player can continue making guesses indefinitely.
+
 ## Notes for Deployment
 
 - The web app should run on the port specified by the hosting platform using the environment variable `PORT`.
@@ -181,9 +197,14 @@ If the values are equal, the response is `"draw"`.
 ## Usage Flow
 
 1. Browser loads `/`.
-2. Client calls `GET /first` to start the first round.
-3. User chooses `higher` or `lower`.
-4. Client sends `POST /guess` with the current token.
-5. The API returns the result and the revealed card for the current round.
-6. The revealed `second` card becomes the current card for the next round, and the API also returns a fresh `next_token` for that following turn.
-7. The client continues the game by using the returned `second` card as the next visible card and the returned `next_token` for the next guess.
+2. Client calls `GET /first` to start the first turn.
+3. The API returns a visible card and a token.
+4. The user chooses `higher` or `lower`.
+5. The client sends `POST /guess` with that token and the chosen guess.
+6. The API compares the visible card with a newly revealed card and returns:
+   - the result of the comparison
+   - the revealed card for the current turn
+   - a fresh token for the next turn
+   - the revealed card again as `next_card` for the next turn
+7. The client displays the returned `next_card` and sends the returned `next_token` with the next guess.
+8. Steps 4–7 repeat indefinitely.

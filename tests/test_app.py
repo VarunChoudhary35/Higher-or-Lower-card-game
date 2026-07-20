@@ -24,6 +24,8 @@ class AppApiTests(unittest.TestCase):
         self.assertIn('second', guess_payload)
         self.assertIn('result', guess_payload)
         self.assertIn('next_token', guess_payload)
+        self.assertIn('next_card', guess_payload)
+        self.assertEqual(guess_payload['next_card'], guess_payload['second'])
         self.assertIsInstance(guess_payload['next_token'], str)
 
         next_round_response = self.client.post('/guess', json={
@@ -31,6 +33,8 @@ class AppApiTests(unittest.TestCase):
             'guess': 'higher'
         })
         self.assertEqual(next_round_response.status_code, 200)
+        next_round_payload = next_round_response.get_json()
+        self.assertEqual(next_round_payload['first'], guess_payload['second'])
 
 
 if __name__ == '__main__':
