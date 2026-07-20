@@ -85,14 +85,13 @@ https://higher-or-lower-card-game-production.up.railway.app
 - Status: `200 OK`
 - Content-Type: `application/json`
 - Body:
-  - `first` (object): the first card drawn.
-  - `second` (object): the second card drawn.
+  - `first` (object): the card shown before the guess for the current round.
+  - `second` (object): the revealed card for the current round.
   - `result` (boolean or string):
     - `true` if the guess was correct
     - `false` if the guess was incorrect
     - `"draw"` if both cards had equal value
   - `next_token` (string): a fresh round token for the next turn.
-  - `next_first` (object): the first card for the next round.
 
 **Example Response:**
 
@@ -101,8 +100,7 @@ https://higher-or-lower-card-game-production.up.railway.app
   "first": { "value": "7", "suit": "HEARTS" },
   "second": { "value": "JACK", "suit": "SPADES" },
   "result": true,
-  "next_token": "4b9e6b6f-2d54-4cc8-9d91-b8c1fb1f8d10",
-  "next_first": { "value": "10", "suit": "CLUBS" }
+  "next_token": "4b9e6b6f-2d54-4cc8-9d91-b8c1fb1f8d10"
 }
 ```
 
@@ -186,5 +184,6 @@ If the values are equal, the response is `"draw"`.
 2. Client calls `GET /first` to start the first round.
 3. User chooses `higher` or `lower`.
 4. Client sends `POST /guess` with the current token.
-5. The API returns the result, the second card, and a `next_token` plus `next_first` for the following round.
-6. The client can continue the game using the returned `next_token` and `next_first` without calling `/first` again.
+5. The API returns the result and the revealed card for the current round.
+6. The revealed `second` card becomes the current card for the next round, and the API also returns a fresh `next_token` for that following turn.
+7. The client continues the game by using the returned `second` card as the next visible card and the returned `next_token` for the next guess.

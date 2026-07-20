@@ -3,7 +3,7 @@ import logging
 import uuid
 from threading import Lock
 
-from card_game import draw_cards, evaluate_guess, get_value
+from card_game import draw_cards, evaluate_guess
 
 app = Flask(__name__)
 
@@ -41,6 +41,7 @@ def first_card():
         'first': first
     })
 
+
 @app.route('/guess', methods=['POST'])
 def guess():
     data = request.get_json() or {}
@@ -56,14 +57,14 @@ def guess():
 
     first, second = pair
     result = evaluate_guess(first, second, guess)
+
     next_token, next_first, _ = _create_round()
 
     return jsonify({
         'first': first,
         'second': second,
         'result': result,
-        'next_token': next_token,
-        'next_first': next_first
+        'next_token': next_token
     })
 
 if __name__ == '__main__':
