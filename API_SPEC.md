@@ -188,6 +188,7 @@ This means the game is not based on a fixed deck or a finite number of rounds. T
 
 - The web app should run on the port specified by the hosting platform using the environment variable `PORT`.
 - The `Procfile` runs the app with `gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 30`.
+- The Flask backend enables CORS via `flask-cors`, allowing browser-based clients such as FlutterFlow to call the API from another origin.
 - The UI uses the `/first` and `/guess` endpoints to manage each round.
 - Tokens are stored in memory and are single-use.
 

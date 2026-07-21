@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request, render_template
+from flask_cors import CORS
 import logging
 import uuid
 from threading import Lock
@@ -6,6 +7,7 @@ from threading import Lock
 from card_game import draw_cards, evaluate_guess
 
 app = Flask(__name__)
+CORS(app)
 
 # basic logging so Railway runtime logs show startup
 logging.basicConfig(level=logging.INFO)
