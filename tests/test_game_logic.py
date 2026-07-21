@@ -13,14 +13,14 @@ class GameLogicTests(unittest.TestCase):
     def test_evaluate_guess_detects_higher(self):
         first_card = {"value": "5", "suit": "CLUBS"}
         second_card = {"value": "9", "suit": "DIAMONDS"}
-        self.assertTrue(evaluate_guess(first_card, second_card, "higher"))
-        self.assertFalse(evaluate_guess(first_card, second_card, "lower"))
+        self.assertEqual(evaluate_guess(first_card, second_card, "higher"), "correct")
+        self.assertEqual(evaluate_guess(first_card, second_card, "lower"), "incorrect")
 
     def test_evaluate_guess_detects_lower(self):
         first_card = {"value": "10", "suit": "SPADES"}
         second_card = {"value": "4", "suit": "HEARTS"}
-        self.assertTrue(evaluate_guess(first_card, second_card, "lower"))
-        self.assertFalse(evaluate_guess(first_card, second_card, "higher"))
+        self.assertEqual(evaluate_guess(first_card, second_card, "lower"), "correct")
+        self.assertEqual(evaluate_guess(first_card, second_card, "higher"), "incorrect")
 
     def test_evaluate_guess_treats_tie_as_draw(self):
         first_card = {"value": "7", "suit": "CLUBS"}

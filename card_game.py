@@ -31,9 +31,9 @@ def evaluate_guess(first_card, second_card, guess):
     second_value = get_value(second_card)
 
     if second_value > first_value:
-        return guess == "higher"
+        return "correct" if guess == "higher" else "incorrect"
     if second_value < first_value:
-        return guess == "lower"
+        return "correct" if guess == "lower" else "incorrect"
     return "draw"
 
 
@@ -66,7 +66,7 @@ def play_round():
 
     if result == "draw":
         print("It's a draw!")
-    elif result:
+    elif result == "correct":
         print("You win!")
     else:
         print("You lose!")
@@ -106,7 +106,7 @@ def main():
             continue
         if round_result == "draw":
             print("No score change.")
-        elif round_result:
+        elif round_result == "correct":
             score += 1
             print(f"Score: {score}")
         else:

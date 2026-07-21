@@ -89,10 +89,7 @@ https://higher-or-lower-card-game-production.up.railway.app
 - Body:
   - `first` (object): the card shown to the player before the guess for the current turn.
   - `second` (object): the card revealed after the guess for the current turn.
-  - `result` (boolean or string):
-    - `true` if the guess was correct
-    - `false` if the guess was incorrect
-    - `"draw"` if both cards had equal value
+  - `result` (string): one of `"correct"`, `"incorrect"`, or `"draw"`
   - `next_token` (string): a fresh token for the next turn.
   - `next_card` (object): the same card as `second`, which becomes the visible card for the next turn.
 
@@ -102,7 +99,7 @@ https://higher-or-lower-card-game-production.up.railway.app
 {
   "first": { "value": "7", "suit": "HEARTS" },
   "second": { "value": "JACK", "suit": "SPADES" },
-  "result": true,
+  "result": "correct",
   "next_token": "4b9e6b6f-2d54-4cc8-9d91-b8c1fb1f8d10",
   "next_card": { "value": "JACK", "suit": "SPADES" }
 }

@@ -192,7 +192,7 @@
                     first: data.next_card || data.second
                 };
                 
-                if (data.result === true) {
+                if (data.result === "correct") {
                     currentScore++;
                     updateScoreUI();
                     document.getElementById('message').innerHTML = "🎉 Correct!<br>Loading next round...";
